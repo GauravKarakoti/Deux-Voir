@@ -11,7 +11,7 @@ An editorial research archive with a public paper library and a private, single-
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/api-server run db:migrate -- --name <migration>` — create and apply a development Prisma migration
 - `pnpm --filter @workspace/api-server run db:seed` — seed the development database from the supplied research pages
-- Required Replit secrets: `DATABASE_URL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- Required secrets: `DATABASE_URL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 
 ## Stack
 
