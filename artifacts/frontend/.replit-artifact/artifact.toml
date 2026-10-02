@@ -3,7 +3,7 @@ previewPath = "/"
 title = "Deux Voir"
 description = "An editorial research publishing website and private single-admin CMS for Deux Voir, with database-backed papers, public paper pages, and Cloudinary image uploads."
 version = "1.0.0"
-id = "artifacts/deux-voir"
+id = "artifacts/frontend"
 router = "path"
 
 [[services]]
@@ -12,12 +12,12 @@ paths = [ "/" ]
 localPort = 20713
 
 [services.development]
-run = "pnpm --filter @workspace/deux-voir run dev"
+run = "pnpm --filter @workspace/frontend run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/deux-voir", "run", "build" ]
+build = [ "pnpm", "--filter", "@workspace/frontend", "run", "build" ]
 serve = "static"
-publicDir = "artifacts/deux-voir/dist/public"
+publicDir = "artifacts/frontend/dist/public"
 
 [[services.production.rewrites]]
 from = "/*"

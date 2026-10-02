@@ -465,7 +465,7 @@ router.post(
       }>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           {
-            folder: "deux-voir/research",
+            folder: "frontend/research",
             resource_type: "image",
             timeout: 60_000,
           },

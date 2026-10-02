@@ -45,14 +45,14 @@ function addStructuredData(html: string, data: Record<string, unknown>): string 
 async function researchDocumentTemplate(): Promise<string> {
   const candidates = process.env.NODE_ENV === "production"
     ? [
-        path.resolve(process.cwd(), "../deux-voir/dist/public/index.html"),
-        path.resolve(process.cwd(), "artifacts/deux-voir/dist/public/index.html"),
-        path.resolve(process.cwd(), "../deux-voir/index.html"),
-        path.resolve(process.cwd(), "artifacts/deux-voir/index.html"),
+        path.resolve(process.cwd(), "../frontend/dist/public/index.html"),
+        path.resolve(process.cwd(), "artifacts/frontend/dist/public/index.html"),
+        path.resolve(process.cwd(), "../frontend/index.html"),
+        path.resolve(process.cwd(), "artifacts/frontend/index.html"),
       ]
     : [
-        path.resolve(process.cwd(), "../deux-voir/index.html"),
-        path.resolve(process.cwd(), "artifacts/deux-voir/index.html"),
+        path.resolve(process.cwd(), "../frontend/index.html"),
+        path.resolve(process.cwd(), "artifacts/frontend/index.html"),
       ];
   for (const candidate of candidates) {
     try {
