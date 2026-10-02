@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research — Deux Voir</title>
+  <meta name="description"
+    content="Papers and research from Deux Voir, an independent research identity exploring world models as memory substrates for multimodal reasoning.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <header class="site-header">
+    <a href="index.html" class="brand">
+      <img src="logo.png" alt="Deux Voir" class="brand-mark">
+      <span class="brand-name">deux voir</span>
+    </a>
+    <nav class="site-nav">
+      <a href="research.html">Research</a>
+      <!-- <a href="about.html">About</a> -->
+    </nav>
+  </header>
+
+  <main>
+
+    <section class="page-head">
+      <p class="eyebrow">Research</p>
+      <h1 class="page-title">Papers &amp; experiments</h1>
+      <p class="page-lede">
+        Work published by us submitted to various conferences and workshops.
+      </p>
+    </section>
+
+    <section class="work">
+      <p class="section-label">2026</p>
+
+      <article class="paper-card">
+        <div class="paper-meta">
+          <span class="paper-status">Under review</span>
+          <span class="paper-venue">Venue TBD</span>
+        </div>
+        <h2 class="paper-title">
+          <a href="research/world-models-neural-surrogates-dft.html">
+            World Models as Neural Surrogates<br>
+            for DFT-Scale Materials Property Simulation
+          </a>
+        </h2>
+        <p class="paper-authors">Arjun Srivastava · Gaurav Karakoti</p>
+        <p class="paper-abstract">
+          A two-stage neural surrogate for high-throughput materials discovery:
+          a JEPA encoder learns physics-informed latent representations of
+          crystal graph structure via masked embedding prediction, and a
+          lightweight transformer readout predicts formation energy, bandgap,
+          and stability — without any quantum-mechanical labels and without
+          performing DFT calculations at inference time.
+        </p>
+        <div class="paper-links">
+          <a href="research/world-models-neural-surrogates-dft.html" class="link-arrow">Read paper</a>
+          <!-- <a href="./research/world-models-neural-surrogates-dft.pdf" class="link-arrow" target="_blank"
+            rel="noopener" download>PDF</a> -->
+          <!-- <a href="#" class="link-arrow muted">Hugging Face</a>
+          <a href="#cite" class="link-arrow muted">Cite</a> -->
+        </div>
+      </article>
+
+      <article class="paper-card">
+        <div class="paper-meta">
+          <span class="paper-status">Workshop submission</span>
+          <span class="paper-venue">TBD</span>
+        </div>
+        <h2 class="paper-title">
+          <a href="research/dctms-deterministic-memory-scheduling.html">
+            Concurrency for Accelerating Multi-Modal<br>
+            Tensor Inference on Resource-Constrained Architectures
+          </a>
+        </h2>
+        <p class="paper-authors">Arjun Srivastava</p>
+        <p class="paper-abstract">
+          DCTMS is a compile-time framework that analyses a transformer's
+          computational graph before inference and derives a complete tensor
+          lifetime map, physical buffer assignment, and concurrency schedule.
+          On Apple M4 unified memory, it reduces 448 logical tensors to 122
+          physical buffers (72.77%) and establishes a provable memory envelope
+          before inference begins, cutting latency variance by 55–69% at the
+          7B scale.
+        </p>
+        <div class="paper-links">
+          <a href="research/dctms-deterministic-memory-scheduling.html" class="link-arrow">Read paper</a>
+          <!-- <a href="./research/dctms-deterministic-memory-scheduling.pdf" class="link-arrow" target="_blank"
+            rel="noopener" download>PDF</a>
+          <a href="#" class="link-arrow muted">Hugging Face</a>
+          <a href="#cite" class="link-arrow muted">Cite</a> -->
+        </div>
+      </article>
+
+      <article class="paper-card">
+        <div class="paper-meta">
+          <span class="paper-status">Workshop submission</span>
+          <span class="paper-venue">ECCV 2026 · Wearable AI</span>
+        </div>
+        <h2 class="paper-title">
+          <a href="research/world-model-latents-as-memory.html">
+            World-Model Latents as Implicit Memory<br>
+            for Egocentric Video Reasoning
+          </a>
+        </h2>
+        <p class="paper-authors">Arjun Srivastava · Gaurav Karakoti</p>
+        <p class="paper-abstract">
+          We investigate whether the learned latent representations of a
+          visual world model can serve as a compact memory substrate for
+          long-context egocentric video reasoning. A V-JEPA encoder produces
+          persistent latent state; a small Qwen vision-language model reasons
+          over that state directly — without external retrieval.
+        </p>
+        <div class="paper-links">
+          <a href="research/world-model-latents-as-memory.html" class="link-arrow">Read paper</a>
+          <a href="./research/world-model-latents-as-memory.pdf" class="link-arrow" download>PDF</a>
+          <!-- <a href="#" class="link-arrow muted">Hugging Face</a>
+          <a href="#" class="link-arrow muted">Cite</a> -->
+        </div>
+      </article>
+
+      <!-- Duplicate this block for each additional paper -->
+
+    </section>
+
+    <section class="work-footnote-block">
+      <p class="work-footnote">
+
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-left">
+      <span class="footer-mark">deux voir</span>
+      <span class="footer-tag">— to see twice</span>
+    </div>
+    <!-- <div class="footer-right">
+      <a href="mailto:hello@deuxvoir.example">Contact</a>
+      <a href="https://github.com/" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://huggingface.co/" target="_blank" rel="noopener">Hugging Face</a>
+    </div> -->
+  </footer>
+
+</body>
+
+</html>
