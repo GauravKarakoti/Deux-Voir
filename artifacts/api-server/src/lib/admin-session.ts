@@ -98,8 +98,18 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
 
 export function isSameOriginRequest(req: Request): boolean {
   const origin = req.get("origin");
-  const host = req.get("host");
-  if (!origin || !host) return false;
+  if (!origin) return true; // Allow browsers that omit Origin on same-site navigations
+
+  // 2. Allow an environment variable override for future flexibility
+  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+    return true;
+  }
+
+  // 3. Fallback to standard CSRF host comparison (used for local development)
+  // Check 'x-forwarded-host' in case the proxy sends it, otherwise use 'host'
+  const host = req.get("x-forwarded-host") || req.get("host");
+  if (!host) return false;
+  
   try {
     return new URL(origin).host.toLowerCase() === host.toLowerCase();
   } catch {
