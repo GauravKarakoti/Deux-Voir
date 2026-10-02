@@ -510,8 +510,9 @@ router.get("/reviews", async (req, res) => {
 
 router.get("/admin/reviews/:id", requireAdmin, async (req, res) => {
   try {
+    const id = req.params.id as string;
     const review = await prisma.peerReview.findUnique({
-      where: { id: req.params.id },
+      where: { id },
     });
     if (!review) {
       res.status(404).json({ error: "Review not found" });
@@ -541,13 +542,14 @@ router.post("/admin/reviews", requireSameOrigin, requireAdmin, async (req, res) 
 
 router.put("/admin/reviews/:id", requireSameOrigin, requireAdmin, async (req, res) => {
   try {
+    const id = req.params.id as string;
     const { reviewerName, conference, paperCount } = req.body;
     if (!reviewerName || !conference || typeof paperCount !== "number") {
       res.status(400).json({ error: "Invalid review data" });
       return;
     }
     const review = await prisma.peerReview.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { reviewerName, conference, paperCount },
     });
     res.json(review);
@@ -562,8 +564,9 @@ router.put("/admin/reviews/:id", requireSameOrigin, requireAdmin, async (req, re
 
 router.delete("/admin/reviews/:id", requireSameOrigin, requireAdmin, async (req, res) => {
   try {
+    const id = req.params.id as string;
     await prisma.peerReview.delete({
-      where: { id: req.params.id },
+      where: { id },
     });
     res.json({ success: true });
   } catch (error) {
