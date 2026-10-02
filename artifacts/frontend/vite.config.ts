@@ -30,6 +30,17 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  server: {
+    proxy: {
+      '/api': {
+        target: process.env.API_URL || 'http://localhost:3000',
+        // It is CRITICAL that changeOrigin is false (which is the default). 
+        // This ensures the Host header remains localhost:5173 so it perfectly 
+        // matches the Origin header, passing your backend's CSRF check!
+        changeOrigin: false, 
+      }
+    }
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -64,15 +75,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
-  },
-  server: {
-    port,
-    strictPort: true,
-    host: '0.0.0.0',
-    allowedHosts: true,
-    fs: {
-      strict: true,
-    },
   },
   preview: {
     port,

@@ -60,22 +60,47 @@ function isUrl(input: RequestInfo | URL): input is URL {
   return typeof URL !== "undefined" && input instanceof URL;
 }
 
-function applyBaseUrl(input: RequestInfo | URL): RequestInfo | URL {
-  if (!_baseUrl) return input;
-  const url = resolveUrl(input);
-  // Only prepend to relative paths (starting with /)
-  if (!url.startsWith("/")) return input;
-
-  const absolute = `${_baseUrl}${url}`;
-  if (typeof input === "string") return absolute;
-  if (isUrl(input)) return new URL(absolute);
-  return new Request(absolute, input as Request);
-}
-
 function resolveUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (isUrl(input)) return input.toString();
   return input.url;
+}
+
+function applyBaseUrl(input: RequestInfo | URL): RequestInfo | URL {
+  let url = resolveUrl(input);
+
+  // 1. Strip hardcoded local URLs so the Vite proxy can intercept them.
+  if (url.startsWith("http://localhost:3000")) {
+    url = url.replace("http://localhost:3000", "");
+  }
+
+  let activeBaseUrl = _baseUrl;
+
+  // 2. Inject Vite environment variables if available (e.g. for Production)
+  // @ts-ignore - Ignoring import.meta typing for generic TS environments
+  if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL !== undefined) {
+    // @ts-ignore
+    activeBaseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, "") : null;
+  }
+
+  // 3. If there is no active base URL, return the potentially normalized relative URL
+  if (!activeBaseUrl) {
+    if (typeof input === "string") return url;
+    if (isUrl(input)) return new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    return new Request(url, input as Request);
+  }
+
+  // Only prepend to relative paths (starting with /)
+  if (!url.startsWith("/")) {
+    if (typeof input === "string") return url;
+    if (isUrl(input)) return new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
+    return new Request(url, input as Request);
+  }
+
+  const absolute = `${activeBaseUrl}${url}`;
+  if (typeof input === "string") return absolute;
+  if (isUrl(input)) return new URL(absolute);
+  return new Request(absolute, input as Request);
 }
 
 function mergeHeaders(...sources: Array<HeadersInit | undefined>): Headers {
@@ -315,7 +340,7 @@ async function parseSuccessBody(
       if (typeof response.blob !== "function") {
         throw new TypeError(
           "Blob responses are not supported in this runtime. " +
-            "Use responseType \"json\" or \"text\" instead.",
+            'Use responseType "json" or "text" instead.',
         );
       }
       return response.blob();

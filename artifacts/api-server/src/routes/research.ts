@@ -495,4 +495,84 @@ router.post(
   },
 );
 
+// === PEER REVIEWS API ROUTES ===
+
+router.get("/reviews", async (req, res) => {
+  try {
+    const reviews = await prisma.peerReview.findMany({
+      orderBy: [{ reviewerName: "asc" }, { conference: "asc" }],
+    });
+    res.json(reviews);
+  } catch (error) {
+    errorResponse(req, res, error, "Unable to load reviews");
+  }
+});
+
+router.get("/admin/reviews/:id", requireAdmin, async (req, res) => {
+  try {
+    const review = await prisma.peerReview.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!review) {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+    res.json(review);
+  } catch (error) {
+    errorResponse(req, res, error, "Unable to load review");
+  }
+});
+
+router.post("/admin/reviews", requireSameOrigin, requireAdmin, async (req, res) => {
+  try {
+    const { reviewerName, conference, paperCount } = req.body;
+    if (!reviewerName || !conference || typeof paperCount !== "number") {
+      res.status(400).json({ error: "Invalid review data" });
+      return;
+    }
+    const review = await prisma.peerReview.create({
+      data: { reviewerName, conference, paperCount },
+    });
+    res.status(201).json(review);
+  } catch (error) {
+    errorResponse(req, res, error, "Unable to create review");
+  }
+});
+
+router.put("/admin/reviews/:id", requireSameOrigin, requireAdmin, async (req, res) => {
+  try {
+    const { reviewerName, conference, paperCount } = req.body;
+    if (!reviewerName || !conference || typeof paperCount !== "number") {
+      res.status(400).json({ error: "Invalid review data" });
+      return;
+    }
+    const review = await prisma.peerReview.update({
+      where: { id: req.params.id },
+      data: { reviewerName, conference, paperCount },
+    });
+    res.json(review);
+  } catch (error) {
+    if ((error as any).code === "P2025") {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+    errorResponse(req, res, error, "Unable to update review");
+  }
+});
+
+router.delete("/admin/reviews/:id", requireSameOrigin, requireAdmin, async (req, res) => {
+  try {
+    await prisma.peerReview.delete({
+      where: { id: req.params.id },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    if ((error as any).code === "P2025") {
+      res.status(404).json({ error: "Review not found" });
+      return;
+    }
+    errorResponse(req, res, error, "Unable to delete review");
+  }
+});
+
 export default router;

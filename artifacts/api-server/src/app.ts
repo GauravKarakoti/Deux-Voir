@@ -29,7 +29,21 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+// === START OF CORS FIX ===
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // In development/testing, you might want to allow any origin to connect,
+      // or explicitly list your frontend URL (e.g., "http://localhost:5173").
+      // Since we are setting credentials to true, origin cannot be "*"
+      callback(null, origin || true);
+    },
+    credentials: true, // IMPORTANT: Allows cookies/sessions to be sent cross-origin
+  })
+);
+// === END OF CORS FIX ===
+
 app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "128kb" }));

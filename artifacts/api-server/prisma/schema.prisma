@@ -53,3 +53,13 @@ model PaperAuthor {
   @@id([paperId, authorId])
   @@index([authorId])
 }
+
+// === NEW PEER REVIEW MODEL ===
+model PeerReview {
+  id           String   @id @default(cuid())
+  reviewerName String   @db.VarChar(255)
+  conference   String   @db.VarChar(255)
+  paperCount   Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+}

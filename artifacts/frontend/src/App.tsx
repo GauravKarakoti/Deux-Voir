@@ -1,5 +1,5 @@
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useMemo, useState } from 'react';
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   getGetAdminDashboardQueryKey,
   getGetAdminPaperQueryKey,
@@ -44,11 +44,34 @@ type PaperFields = {
   externalLinks: string; seoImage: string;
 };
 
+type PeerReview = {
+  id: string;
+  reviewerName: string;
+  conference: string;
+  paperCount: number;
+};
+
 const blankFields: PaperFields = {
   slug: '', title: '', shortTitle: '', summary: '', abstract: '', content: '', status: 'Preprint', venue: '',
   authors: '', submittedDate: '', year: String(new Date().getFullYear()), keywords: '',
   featured: false, published: false, externalLinks: '', seoImage: '',
 };
+
+const getArray = (data: any): any[] => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data;
+  if (typeof data === 'object') {
+    if (Array.isArray(data.papers)) return data.papers;
+    if (Array.isArray(data.data)) return data.data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.results)) return data.results;
+    const values = Object.values(data);
+    const found = values.find(Array.isArray);
+    if (found) return found as any[];
+  }
+  return [];
+};
+
 const authorsToText = (authors: PaperData['authors']) => authors.map((author) => [author.name, author.affiliation ?? '', author.profileUrl ?? ''].join(' | ').replace(/\s+\|\s+$/, '')).join('\n');
 const linksToText = (links: PaperData['externalLinks']) => links.map((link) => `${link.label} | ${link.url}`).join('\n');
 const fieldsFromPaper = (paper: PaperData): PaperFields => ({
@@ -98,7 +121,7 @@ function usePageMetadata(title: string, description: string, image?: string, noI
 
 function SiteHeader() {
   return <header className="site-header">
-    <Link href="/" className="brand" aria-label="Deux Voir homepage"><span className="brand-seal" aria-hidden="true">dv</span><span className="brand-name">deux voir</span></Link>
+    <Link href="/" className="brand" aria-label="Deux Voir homepage"><img src="/logo.png" alt="Deux Voir logo" className="brand-seal" /><span className="brand-name">Deux Voir</span></Link>
     <nav className="site-nav" aria-label="Main navigation"><Link href="/research">Research</Link></nav>
   </header>;
 }
@@ -125,6 +148,23 @@ function PaperCard({ paper }: { paper: Summary }) {
 }
 function HomePage() {
   const papers = useGetHomePapers();
+  const papersList = getArray(papers.data) as Summary[];
+  const reviewsQuery = useQuery({
+    queryKey: ['peerReviews'],
+    queryFn: async () => {
+      const res = await fetch('/api/reviews');
+      if (!res.ok) throw new Error('Failed to load reviews');
+      return res.json() as Promise<PeerReview[]>;
+    }
+  });
+  
+  const reviewsList = reviewsQuery.data || [];
+  const reviewsByReviewer = reviewsList.reduce((acc, review) => {
+    if (!acc[review.reviewerName]) acc[review.reviewerName] = [];
+    acc[review.reviewerName].push(review);
+    return acc;
+  }, {} as Record<string, PeerReview[]>);
+
   usePageMetadata(
     'Deux Voir — Independent Research',
     'Deux Voir is an independent research identity exploring world models as memory substrates for multimodal reasoning.',
@@ -138,21 +178,32 @@ function HomePage() {
     {papers.isLoading && <LoadingState label="Selected work"/>}
     {papers.isError && <ErrorState error={papers.error} retry={() => void papers.refetch()}/>}
     {papers.isSuccess && <section className="work" aria-labelledby="selected-work"><p className="section-label" id="selected-work">Selected work</p>
-      {papers.data.length ? papers.data.map((paper) => <PaperCard key={paper.id} paper={paper}/>) : <p className="work-footnote">Research will appear here as it becomes ready.</p>}
+      {papersList.length ? papersList.map((paper) => <PaperCard key={paper.id} paper={paper}/>) : <p className="work-footnote">Research will appear here as it becomes ready.</p>}
       <p className="work-footnote">More work, including models, tools, and experiments, will appear as it is ready.</p>
     </section>}
-    <section className="work">
-      <p className="section-label">Peer reviewing contribution</p>
-      <p className="about-text" style={{ fontSize: 19, marginBottom: 22 }}>We have peer reviewing for the following conferences and journals.</p>
-      <h2 className="paper-title" style={{ marginBottom: 6 }}>Arjun Srivastava</h2>
-      <p className="paper-authors">NeurIPS 2026: 2 paper reviewed</p>
-    </section>
+    
+    {reviewsList.length > 0 && (
+      <section className="work">
+        <p className="section-label">Peer reviewing contribution</p>
+        <p className="about-text" style={{ fontSize: 19, marginBottom: 22 }}>We have peer reviewing for the following conferences and journals.</p>
+        {Object.entries(reviewsByReviewer).map(([reviewer, revs]) => (
+          <div key={reviewer} style={{ marginBottom: 24 }}>
+            <h2 className="paper-title" style={{ marginBottom: 6 }}>{reviewer}</h2>
+            {revs.map((r) => (
+              <p key={r.id} className="paper-authors">{r.conference}: {r.paperCount} paper{r.paperCount !== 1 ? 's' : ''} reviewed</p>
+            ))}
+          </div>
+        ))}
+      </section>
+    )}
+    
     <section className="about-strip"><p className="section-label">The lab</p><p className="about-text">Deux Voir is a small, independent research identity exploring world models as memory substrates for multimodal reasoning. We are interested in the intersection of learned world models, latent representations, and language model reasoning. Our work is open-source and we welcome collaboration.</p></section>
   </PublicFrame>;
 }
 function ResearchIndex() {
   const papers = useListPublicPapers();
-  const years = useMemo(() => papers.data ? Array.from(new Set(papers.data.map((p) => p.year))).sort((a, b) => b - a) : [], [papers.data]);
+  const papersList = getArray(papers.data) as Summary[];
+  const years = useMemo(() => papers.data ? Array.from(new Set(papersList.map((p) => p.year))).sort((a, b) => b - a) : [], [papersList, papers.data]);
   usePageMetadata(
     'Research Papers & Experiments — Deux Voir',
     'Papers and research from Deux Voir, an independent research identity exploring world models as memory substrates for multimodal reasoning.',
@@ -161,8 +212,8 @@ function ResearchIndex() {
     <section className="page-head"><p className="eyebrow">Research</p><h1 className="page-title">Papers &amp; experiments</h1><p className="page-lede">Work published by us submitted to various conferences and workshops.</p></section>
     {papers.isLoading && <LoadingState/>}
     {papers.isError && <ErrorState error={papers.error} retry={() => void papers.refetch()}/>}
-    {papers.isSuccess && (papers.data.length
-      ? years.map((year) => <section className="work" key={year}><p className="section-label">{year}</p>{papers.data.filter((paper) => paper.year === year).map((paper) => <PaperCard key={paper.id} paper={paper}/>)}</section>)
+    {papers.isSuccess && (papersList.length
+      ? years.map((year) => <section className="work" key={year}><p className="section-label">{year}</p>{papersList.filter((paper) => paper.year === year).map((paper) => <PaperCard key={paper.id} paper={paper}/>)}</section>)
       : <section className="state-wrap"><p className="eyebrow">Research archive</p><h2 className="state-title">No papers published yet.</h2><p className="state-copy">New research will be listed here when it is ready to share.</p></section>)}
   </PublicFrame>;
 }
@@ -203,7 +254,7 @@ function AdminHeader() {
     navigate('/admin/login');
   } });
   return <header className="admin-top">
-    <Link className="brand" href="/admin"><span className="brand-seal" aria-hidden="true">dv</span><span className="brand-name">deux voir <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/ studio</span></span></Link>
+    <Link className="brand" href="/admin"><img src="/logo.png" alt="Deux Voir logo" className="brand-seal" /><span className="brand-name">Deux Voir <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/ studio</span></span></Link>
     <div className="admin-top-right"><Link href="/">View site</Link><button className="button button-quiet" onClick={onLogout} disabled={logout.isPending} data-testid="button-logout"><LogOut size={14}/> Sign out</button></div>
   </header>;
 }
@@ -248,9 +299,22 @@ function AdminLogin() {
 function AdminDashboard() {
   const dashboard = useGetAdminDashboard();
   const allPapers = useListAdminPapers();
+  const papersList = getArray(allPapers.data) as Summary[];
+  
+  // Peer Reviews query
+  const reviewsQuery = useQuery({
+    queryKey: ['peerReviews'],
+    queryFn: async () => {
+      const res = await fetch('/api/reviews');
+      if (!res.ok) throw new Error('Failed to load reviews');
+      return res.json() as Promise<PeerReview[]>;
+    }
+  });
+  const reviewsList = reviewsQuery.data || [];
+  
   const publish = useSetPaperPublished();
   const client = useQueryClient();
-  const refresh = () => { void dashboard.refetch(); void allPapers.refetch(); };
+  const refresh = () => { void dashboard.refetch(); void allPapers.refetch(); reviewsQuery.refetch(); };
   const togglePublish = (paper: Summary) => publish.mutate({ id: paper.id, data: { published: !paper.published } }, { onSuccess: async () => {
     await Promise.all([
       client.invalidateQueries({ queryKey: getGetAdminDashboardQueryKey() }),
@@ -260,10 +324,14 @@ function AdminDashboard() {
       client.invalidateQueries({ queryKey: getGetHomePapersQueryKey() }),
     ]);
   } });
+  
   if (dashboard.isLoading || allPapers.isLoading) return <AdminFrame><LoadingState label="Studio dashboard"/></AdminFrame>;
   if (dashboard.isError) return <AdminFrame><ErrorState error={dashboard.error} retry={refresh}/></AdminFrame>;
   if (allPapers.isError) return <AdminFrame><ErrorState error={allPapers.error} retry={refresh}/></AdminFrame>;
+  
   const stats = dashboard.data;
+  const recentlyUpdated = getArray(stats?.recentlyUpdated) as Summary[];
+  
   return <AdminFrame>
     <div className="admin-row"><div><p className="admin-kicker">Publishing studio</p><h1 className="admin-title">Good work, in progress.</h1></div><Link href="/admin/papers/new" className="button button-solid" data-testid="link-create-paper"><Plus size={14}/> New paper</Link></div>
     <section className="admin-stats" aria-label="Research totals">
@@ -271,15 +339,157 @@ function AdminDashboard() {
       <div className="admin-stat"><span className="admin-stat-value">{stats?.publishedPapers ?? 0}</span><span className="admin-stat-label">Published</span></div>
       <div className="admin-stat"><span className="admin-stat-value">{stats?.drafts ?? 0}</span><span className="admin-stat-label">Drafts</span></div>
     </section>
-    <div className="admin-row" style={{ marginBottom: 14 }}><div><p className="admin-kicker">Your collection</p><h2 style={{ fontSize: 27, fontWeight: 400, margin: 0 }}>Papers</h2></div><span className="admin-meta">{allPapers.data?.length ?? 0} records</span></div>
-    {!allPapers.data?.length ? <div className="notice">The collection is empty. Create a paper to begin the archive.</div> : <table className="admin-table"><thead><tr><th>Title</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>{allPapers.data.map((paper) => <tr key={paper.id} data-testid={`row-paper-${paper.id}`}>
+    
+    <div className="admin-row" style={{ marginBottom: 14 }}><div><p className="admin-kicker">Your collection</p><h2 style={{ fontSize: 27, fontWeight: 400, margin: 0 }}>Papers</h2></div><span className="admin-meta">{papersList.length} records</span></div>
+    {!papersList.length ? <div className="notice">The collection is empty. Create a paper to begin the archive.</div> : <table className="admin-table"><thead><tr><th>Title</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead><tbody>{papersList.map((paper) => <tr key={paper.id} data-testid={`row-paper-${paper.id}`}>
       <td><Link className="admin-paper-title" href={`/admin/papers/${paper.id}/edit`}>{paper.title}</Link><span className="admin-meta">{authorLabel(paper.authors)} · {paper.year}</span></td>
       <td><span className={`status-chip ${paper.published ? 'published' : ''}`}>{paper.published ? 'Published' : 'Draft'}</span></td>
       <td className="admin-meta">{dateLabel(paper.updatedAt)}</td>
       <td><div className="button-row"><Link className="button" href={`/admin/papers/${paper.id}/edit`}>Edit</Link><Link className="button" href={`/admin/papers/${paper.id}/preview`}><Eye size={13}/> Preview</Link><button className="button" onClick={() => togglePublish(paper)} disabled={publish.isPending} data-testid={`button-publish-${paper.id}`}>{paper.published ? 'Unpublish' : 'Publish'}</button></div></td>
     </tr>)}</tbody></table>}
-    <section style={{ marginTop: 55 }}><p className="admin-kicker">Recently updated</p>{stats?.recentlyUpdated?.length ? <div>{stats.recentlyUpdated.slice(0, 4).map((paper) => <p className="admin-meta" key={paper.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--rule)' }}><Link href={`/admin/papers/${paper.id}/edit`} style={{ color: 'var(--ink)', font: '17px var(--app-font-serif)' }}>{paper.title}</Link><span style={{ float: 'right' }}>{dateLabel(paper.updatedAt)}</span></p>)}</div> : <p className="state-copy">Nothing updated yet.</p>}</section>
+    
+    <div className="admin-row" style={{ marginTop: 55, marginBottom: 14 }}>
+      <div>
+        <p className="admin-kicker">Contributions</p>
+        <h2 style={{ fontSize: 27, fontWeight: 400, margin: 0 }}>Peer Reviews</h2>
+      </div>
+      <Link href="/admin/reviews/new" className="button button-solid"><Plus size={14}/> Add review</Link>
+    </div>
+    {!reviewsList.length ? (
+      <div className="notice">No review contributions recorded.</div>
+    ) : (
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Reviewer Name</th>
+            <th>Conference / Journal</th>
+            <th>Papers Reviewed</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reviewsList.map((review) => (
+            <tr key={review.id}>
+              <td><Link className="admin-paper-title" href={`/admin/reviews/${review.id}/edit`}>{review.reviewerName}</Link></td>
+              <td><span className="admin-meta">{review.conference}</span></td>
+              <td className="admin-meta">{review.paperCount}</td>
+              <td>
+                <div className="button-row">
+                  <Link className="button" href={`/admin/reviews/${review.id}/edit`}>Edit</Link>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+    
+    <section style={{ marginTop: 55 }}><p className="admin-kicker">Recently updated</p>{recentlyUpdated.length ? <div>{recentlyUpdated.slice(0, 4).map((paper) => <p className="admin-meta" key={paper.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--rule)' }}><Link href={`/admin/papers/${paper.id}/edit`} style={{ color: 'var(--ink)', font: '17px var(--app-font-serif)' }}>{paper.title}</Link><span style={{ float: 'right' }}>{dateLabel(paper.updatedAt)}</span></p>)}</div> : <p className="state-copy">Nothing updated yet.</p>}</section>
   </AdminFrame>;
+}
+
+function ReviewEditor({ mode }: { mode: 'create' | 'edit' }) {
+  const params = useParams<{ id?: string }>();
+  const id = params.id ?? '';
+  const [fields, setFields] = useState({ reviewerName: '', conference: '', paperCount: 1 });
+  const [message, setMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [, navigate] = useLocation();
+  const client = useQueryClient();
+  
+  const isEdit = mode === 'edit';
+  
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['peerReview', id],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/reviews/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch review');
+      return res.json() as Promise<PeerReview>;
+    },
+    enabled: isEdit && Boolean(id),
+  });
+
+  useEffect(() => {
+    if (isEdit && data) {
+      setFields({ reviewerName: data.reviewerName, conference: data.conference, paperCount: data.paperCount });
+    }
+  }, [isEdit, data]);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setMessage(''); setErrorMessage('');
+    
+    try {
+      const res = await fetch(isEdit ? `/api/admin/reviews/${id}` : '/api/admin/reviews', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save review');
+      }
+      
+      await client.invalidateQueries({ queryKey: ['peerReviews'] });
+      setMessage('Saved.');
+      if (!isEdit) {
+        navigate('/admin');
+      }
+    } catch (error) {
+      setErrorMessage(queryError(error));
+    }
+  };
+
+  const onDelete = async () => {
+    if (!window.confirm('Delete this review permanently? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete review');
+      await client.invalidateQueries({ queryKey: ['peerReviews'] });
+      navigate('/admin');
+    } catch (error) {
+      setErrorMessage(queryError(error));
+    }
+  };
+
+  if (isEdit && isLoading) return <AdminFrame><LoadingState label="Opening review"/></AdminFrame>;
+  if (isEdit && isError) return <AdminFrame><ErrorState error={new Error('Failed')} retry={() => {}}/></AdminFrame>;
+
+  return (
+    <AdminFrame>
+      <Link className="back-link" href="/admin"><ArrowLeft size={13}/> Back to dashboard</Link>
+      <div className="admin-row">
+        <div>
+          <p className="admin-kicker">{isEdit ? 'Editing contribution' : 'New contribution'}</p>
+          <h1 className="admin-title">{isEdit ? 'Edit review' : 'Add a review'}</h1>
+        </div>
+      </div>
+      {message && <div className="notice" role="status" style={{ marginBottom: 18 }}>{message}</div>}
+      {errorMessage && <div className="notice error" role="alert" style={{ marginBottom: 18 }}>{errorMessage}</div>}
+      <form onSubmit={submit} className="form-grid">
+        <label className="field full">
+          <span className="field-label">Reviewer Name *</span>
+          <input className="control" required value={fields.reviewerName} onChange={e => setFields(f => ({ ...f, reviewerName: e.target.value }))} placeholder="Arjun Srivastava"/>
+        </label>
+        <label className="field full">
+          <span className="field-label">Conference / Journal *</span>
+          <input className="control" required value={fields.conference} onChange={e => setFields(f => ({ ...f, conference: e.target.value }))} placeholder="NeurIPS 2026 (Workshop Track)"/>
+        </label>
+        <label className="field full">
+          <span className="field-label">Papers Reviewed *</span>
+          <input className="control" type="number" min="1" required value={fields.paperCount} onChange={e => setFields(f => ({ ...f, paperCount: parseInt(e.target.value) || 0 }))}/>
+        </label>
+        <div className="field full button-row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--rule)', paddingTop: 20 }}>
+          <div className="button-row">
+            <button className="button button-solid" type="submit">{isEdit ? 'Save changes' : 'Create review'}</button>
+            <Link href="/admin" className="button">Cancel</Link>
+          </div>
+          {isEdit && <button className="button button-danger" type="button" onClick={onDelete}>Delete</button>}
+        </div>
+      </form>
+    </AdminFrame>
+  );
 }
 
 function PaperEditor({ mode }: { mode: 'create' | 'edit' }) {
@@ -414,9 +624,16 @@ function Router() {
       <Route path="/research" component={ResearchIndex}/>
       <Route path="/research/:slug" component={PublicPaperPage}/>
       <Route path="/admin/login" component={AdminLogin}/>
+      
+      {/* Paper Routes */}
       <Route path="/admin/papers/new">{() => <SessionGate><PaperEditor mode="create"/></SessionGate>}</Route>
       <Route path="/admin/papers/:id/edit">{() => <SessionGate><PaperEditor mode="edit"/></SessionGate>}</Route>
       <Route path="/admin/papers/:id/preview">{() => <SessionGate><PaperPreview/></SessionGate>}</Route>
+      
+      {/* Peer Review Routes */}
+      <Route path="/admin/reviews/new">{() => <SessionGate><ReviewEditor mode="create"/></SessionGate>}</Route>
+      <Route path="/admin/reviews/:id/edit">{() => <SessionGate><ReviewEditor mode="edit"/></SessionGate>}</Route>
+      
       <Route path="/admin">{() => <SessionGate><AdminDashboard/></SessionGate>}</Route>
       <Route component={NotFound}/>
     </Switch>
