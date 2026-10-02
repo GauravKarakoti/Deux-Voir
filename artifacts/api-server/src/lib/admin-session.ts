@@ -12,8 +12,8 @@ const sessions = new Map<string, number>();
 
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("SESSION_SECRET must contain at least 32 characters.");
+  if (!secret) {
+    throw new Error("SESSION_SECRET is not configured.");
   }
   return secret;
 }
