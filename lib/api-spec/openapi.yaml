@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: research
+    description: Public research pages
+  - name: auth
+    description: Private administrator session
+  - name: admin
+    description: Research publishing tools
 paths:
   /healthz:
     get:
@@ -24,6 +30,277 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /papers/home:
+    get:
+      operationId: getHomePapers
+      tags: [research]
+      summary: Get selected published research
+      responses:
+        "200":
+          description: Featured published papers, falling back to the newest papers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+  /papers:
+    get:
+      operationId: listPublicPapers
+      tags: [research]
+      summary: List published research papers
+      responses:
+        "200":
+          description: Published papers ordered by year and submission date
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+  /papers/{slug}:
+    get:
+      operationId: getPublicPaper
+      tags: [research]
+      summary: Get a published paper by slug
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Published paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "404":
+          description: Paper not found
+  /auth/session:
+    get:
+      operationId: getAdminSession
+      tags: [auth]
+      summary: Check whether the administrator is authenticated
+      responses:
+        "200":
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+  /auth/login:
+    post:
+      operationId: loginAdmin
+      tags: [auth]
+      summary: Sign in to the private publishing portal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionState"
+        "401":
+          description: Generic authentication failure
+  /auth/logout:
+    post:
+      operationId: logoutAdmin
+      tags: [auth]
+      summary: End the administrator session
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [admin]
+      summary: Get publishing counts and recently updated papers
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+        "401":
+          description: Authentication required
+  /admin/papers:
+    get:
+      operationId: listAdminPapers
+      tags: [admin]
+      summary: List all published and draft papers
+      responses:
+        "200":
+          description: Papers available to the administrator
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaperSummary"
+        "401":
+          description: Authentication required
+    post:
+      operationId: createPaper
+      tags: [admin]
+      summary: Create a paper
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaperInput"
+      responses:
+        "201":
+          description: Created paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "400":
+          description: Invalid paper
+        "401":
+          description: Authentication required
+        "409":
+          description: Slug already exists
+  /admin/papers/{id}:
+    get:
+      operationId: getAdminPaper
+      tags: [admin]
+      summary: Get a paper, including unpublished drafts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "401":
+          description: Authentication required
+        "404":
+          description: Paper not found
+    put:
+      operationId: updatePaper
+      tags: [admin]
+      summary: Update a paper
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaperUpdate"
+      responses:
+        "200":
+          description: Updated paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "400":
+          description: Invalid paper
+        "401":
+          description: Authentication required
+        "404":
+          description: Paper not found
+        "409":
+          description: Slug already exists
+    delete:
+      operationId: deletePaper
+      tags: [admin]
+      summary: Delete a paper after explicit confirmation in the admin interface
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Paper deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "401":
+          description: Authentication required
+        "404":
+          description: Paper not found
+  /admin/papers/{id}/publish:
+    patch:
+      operationId: setPaperPublished
+      tags: [admin]
+      summary: Publish or unpublish a paper
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishInput"
+      responses:
+        "200":
+          description: Updated paper
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Paper"
+        "401":
+          description: Authentication required
+        "404":
+          description: Paper not found
+  /admin/uploads:
+    post:
+      operationId: uploadResearchImage
+      tags: [admin]
+      summary: Validate and upload an image to Cloudinary
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ImageUploadInput"
+      responses:
+        "201":
+          description: Uploaded image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUploadResult"
+        "400":
+          description: Invalid image
+        "401":
+          description: Authentication required
+        "413":
+          description: Image exceeds the upload size limit
 components:
   schemas:
     HealthStatus:
@@ -33,4 +310,253 @@ components:
           type: string
       required:
         - status
+    Author:
+      type: object
+      required: [name, affiliation, profileUrl, sortOrder]
+      properties:
+        name:
+          type: string
+        affiliation:
+          type: ["string", "null"]
+        profileUrl:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+    ExternalLink:
+      type: object
+      required: [label, url]
+      properties:
+        label:
+          type: string
+        url:
+          type: string
+          format: uri
+    PaperSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - shortTitle
+        - summary
+        - abstract
+        - status
+        - venue
+        - authors
+        - submittedDate
+        - year
+        - keywords
+        - featured
+        - published
+        - updatedAt
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        title:
+          type: string
+        shortTitle:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+          maxLength: 20000
+          description: Short description used on research cards and as a search snippet
+        abstract:
+          type: string
+          maxLength: 20000
+          description: Full abstract shown on the paper page
+        status:
+          type: string
+        venue:
+          type: ["string", "null"]
+        authors:
+          type: array
+          items:
+            $ref: "#/components/schemas/Author"
+        submittedDate:
+          type: ["string", "null"]
+          format: date-time
+        year:
+          type: integer
+        keywords:
+          type: array
+          items:
+            type: string
+        featured:
+          type: boolean
+        published:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    Paper:
+      allOf:
+        - $ref: "#/components/schemas/PaperSummary"
+        - type: object
+          required: [content, externalLinks, seoImage, createdAt]
+          properties:
+            content:
+              type: string
+              description: Sanitized rich-text HTML
+            externalLinks:
+              type: array
+              items:
+                $ref: "#/components/schemas/ExternalLink"
+            seoImage:
+              type: ["string", "null"]
+              format: uri
+            createdAt:
+              type: string
+              format: date-time
+    AuthorInput:
+      type: object
+      required: [name, affiliation, profileUrl]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        affiliation:
+          type: ["string", "null"]
+        profileUrl:
+          type: ["string", "null"]
+          format: uri
+    ExternalLinkInput:
+      type: object
+      required: [label, url]
+      properties:
+        label:
+          type: string
+          minLength: 1
+        url:
+          type: string
+          format: uri
+    PaperInput:
+      type: object
+      required:
+        - slug
+        - title
+        - shortTitle
+        - summary
+        - abstract
+        - content
+        - status
+        - venue
+        - authors
+        - submittedDate
+        - year
+        - keywords
+        - featured
+        - published
+        - externalLinks
+        - seoImage
+      properties:
+        slug:
+          type: string
+          minLength: 1
+          maxLength: 180
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        shortTitle:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+          maxLength: 20000
+        abstract:
+          type: string
+          maxLength: 20000
+        content:
+          type: string
+        status:
+          type: string
+        venue:
+          type: ["string", "null"]
+        authors:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthorInput"
+        submittedDate:
+          type: ["string", "null"]
+          format: date-time
+        year:
+          type: integer
+        keywords:
+          type: array
+          items:
+            type: string
+        featured:
+          type: boolean
+        published:
+          type: boolean
+        externalLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalLinkInput"
+        seoImage:
+          type: ["string", "null"]
+          format: uri
+    PaperUpdate:
+      allOf:
+        - $ref: "#/components/schemas/PaperInput"
+    LoginInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+    SessionState:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+    DashboardSummary:
+      type: object
+      required: [totalPapers, publishedPapers, drafts, recentlyUpdated]
+      properties:
+        totalPapers:
+          type: integer
+        publishedPapers:
+          type: integer
+        drafts:
+          type: integer
+        recentlyUpdated:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaperSummary"
+    PublishInput:
+      type: object
+      required: [published]
+      properties:
+        published:
+          type: boolean
+    ImageUploadInput:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          format: binary
+    ImageUploadResult:
+      type: object
+      required: [url, publicId, width, height]
+      properties:
+        url:
+          type: string
+          format: uri
+        publicId:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+    Success:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
 

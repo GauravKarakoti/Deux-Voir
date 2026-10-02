@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Deux Voir"
+description = "An editorial research publishing website and private single-admin CMS for Deux Voir, with database-backed papers, public paper pages, and Cloudinary image uploads."
+version = "1.0.0"
+id = "artifacts/deux-voir"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20713
+
+[services.development]
+run = "pnpm --filter @workspace/deux-voir run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/deux-voir", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/deux-voir/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20713"
+BASE_PATH = "/"

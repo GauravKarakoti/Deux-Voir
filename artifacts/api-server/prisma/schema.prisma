@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Paper {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String        @db.VarChar(500)
+  shortTitle    String?
+  summary       String?       @db.Text
+  abstract      String        @db.Text
+  content       String        @db.Text
+  status        String        @default("Preprint")
+  venue         String?
+  submittedDate DateTime?     @db.Timestamptz(3)
+  year          Int
+  keywords      String[]      @default([])
+  featured      Boolean       @default(false)
+  published     Boolean       @default(false)
+  sortOrder     Int           @default(0)
+  externalLinks Json          @default("[]")
+  seoImage      String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(3)
+  authors       PaperAuthor[]
+
+  @@index([published, year])
+  @@index([featured, published])
+  @@index([year])
+  @@index([updatedAt])
+}
+
+model Author {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  affiliation String?
+  profileUrl  String?
+  papers      PaperAuthor[]
+}
+
+model PaperAuthor {
+  paperId   String
+  authorId  String
+  sortOrder Int    @default(0)
+  paper     Paper  @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  author    Author @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@id([paperId, authorId])
+  @@index([authorId])
+}
